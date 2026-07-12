@@ -114,6 +114,13 @@ button.primary{
 [data-theme="hc"] button.primary{background:var(--accent); color:#000;}
 button.primary:active{transform:scale(.98);}
 
+button.resetbtn{
+  width:100%; padding:11px; margin-top:8px; border-radius:12px; border:1px solid var(--line);
+  background:transparent; color:var(--sub); font-size:13.5px; font-weight:600; cursor:pointer;
+}
+button.resetbtn:hover{color:var(--danger); border-color:var(--danger);}
+button.resetbtn:active{transform:scale(.98);}
+
 .viewfinder{
   position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
   padding:28px; display:flex; align-items:center; justify-content:center; min-height:260px;
@@ -368,6 +375,7 @@ footer strong{color:var(--text); font-weight:700;}
       <input type="range" id="margin" min="0" max="10" step="1" value="4">
     </div>
     <button class="primary" id="genBtn">Generate QR Code</button>
+    <button class="resetbtn" id="resetBtn">Reset All Fields</button>
   </div>
 
   <div class="previewhead">
@@ -708,6 +716,39 @@ footer strong{color:var(--text); font-weight:700;}
     tryLoad(buildUrls(payload), 0, genSeq);
   }
   genBtn.addEventListener("click", function(){ generate(false); });
+
+  var resetBtn = document.getElementById("resetBtn");
+  function resetAllFields(){
+    genSeq++; // invalidate any in-flight preview request
+
+    document.querySelectorAll(".panel input[type=text], .panel textarea, .panel input[type=datetime-local]").forEach(function(el){
+      el.value = "";
+    });
+    document.getElementById("wifiHidden").checked = false;
+    document.getElementById("size").value = "250";
+    document.getElementById("ecc").value = "M";
+    document.getElementById("wifiEnc").value = "WPA";
+    document.getElementById("cryCoin").value = "bitcoin";
+    document.getElementById("socPlatform").value = "instagram";
+    document.getElementById("fg").value = "#000000";
+    document.getElementById("bg").value = "#ffffff";
+    marginEl.value = "4";
+    marginValEl.textContent = "4";
+    countEl.textContent = "0";
+
+    currentType = "text";
+    document.querySelectorAll("#typetabs button").forEach(function(x){
+      x.classList.toggle("active", x.getAttribute("data-type") === "text");
+    });
+    document.querySelectorAll(".typefields").forEach(function(g){
+      g.hidden = g.getAttribute("data-type-fields") !== "text";
+    });
+    tabsEl.scrollLeft = 0;
+
+    resetPreview();
+    setStatus("All fields cleared.");
+  }
+  resetBtn.addEventListener("click", resetAllFields);
 
   function downloadAsBlob(url, filename){
     return fetch(url)
