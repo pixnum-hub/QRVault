@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QRVault — QR Code Generator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0f14">
+<style>
+:root{
+  --bg:#0b0f14; --panel:#121821; --panel2:#0e141c; --line:#22303f;
+  --text:#e7f1f8; --sub:#8fa3b3; --accent:#22e0c9; --accent2:#4f9dff;
+  --danger:#ff5d6c; --radius:16px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f3f6f8; --panel:#ffffff; --panel2:#eef2f5; --line:#d8e0e6;
+  --text:#12202b; --sub:#5c7080; --accent:#0f9d8c; --accent2:#2f7de0;
+}
+[data-theme="oled"]{
+  --bg:#000000; --panel:#0a0a0a; --panel2:#050505; --line:#1c1c1c;
+  --text:#f2f2f2; --sub:#8a8a8a; --accent:#22e0c9; --accent2:#4f9dff;
+}
+[data-theme="hc"]{
+  --bg:#000000; --panel:#000000; --panel2:#000000; --line:#ffffff;
+  --text:#ffffff; --sub:#ffff00; --accent:#ffff00; --accent2:#00eaff;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--font);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:20px 16px 12px; transition:background .25s,color .25s;
+}
+.wrap{width:100%; max-width:480px; display:flex; flex-direction:column; gap:16px; flex:1;}
+.themebar{display:flex; gap:8px; justify-content:center; flex-wrap:wrap;}
+.themebar button{
+  flex:1; min-width:70px; padding:9px 6px; border-radius:10px; border:1px solid var(--line);
+  background:var(--panel); color:var(--sub); font-size:12px; font-weight:600; letter-spacing:.02em;
+  cursor:pointer;
+}
+.themebar button.active{color:var(--bg); background:var(--accent); border-color:var(--accent);}
+header{text-align:center; padding:4px 0 0;}
+header h1{
+  margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em;
+  background:linear-gradient(100deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+[data-theme="hc"] header h1{background:none; -webkit-background-clip:unset; background-clip:unset; color:var(--accent);}
+header p{margin:4px 0 0; font-size:12.5px; color:var(--sub);}
+
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px;}
+label{display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--sub); margin-bottom:6px;}
+textarea, select, input[type=text], input[type=datetime-local]{
+  width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  border-radius:10px; padding:11px 12px; font-size:15px; font-family:inherit; resize:none;
+}
+textarea{min-height:74px;}
+textarea:focus, select:focus, input:focus{outline:2px solid var(--accent2); outline-offset:1px;}
+input[type=datetime-local]::-webkit-calendar-picker-indicator{filter:invert(0.8); cursor:pointer;}
+[data-theme="light"] input[type=datetime-local]::-webkit-calendar-picker-indicator{filter:none;}
+.row{display:flex; gap:10px;}
+.row > div{flex:1;}
+.field{margin-bottom:12px;}
+.field:last-child{margin-bottom:0;}
+.colorfield{display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:6px 10px;}
+.colorfield input[type=color]{width:34px; height:34px; border:none; background:none; padding:0; cursor:pointer;}
+.colorfield span{font-size:13px; color:var(--sub);}
+
+.charcount{text-align:right; font-size:11px; color:var(--sub); margin-top:4px;}
+
+.typetabs{
+  display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:12px; scrollbar-width:none;
+  -webkit-overflow-scrolling:touch; scroll-behavior:smooth; cursor:grab; position:relative;
+  mask-image:linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+.typetabs.dragging{cursor:grabbing; scroll-behavior:auto; user-select:none;}
+.typetabs::-webkit-scrollbar{display:none;}
+.typetabs button{
+  flex:0 0 auto; padding:8px 13px; border-radius:20px; border:1px solid var(--line);
+  background:var(--panel2); color:var(--sub); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+}
+.typetabs button.active{background:var(--accent); color:var(--bg); border-color:var(--accent);}
+.checkfield{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sub); cursor:pointer; margin-top:2px;}
+.checkfield input{width:16px; height:16px; accent-color:var(--accent);}
+
+.rangelabel{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+.rangelabel span{font-size:13px; font-weight:700; color:var(--accent); min-width:18px; text-align:right;}
+input[type=range]{
+  width:100%; height:6px; border-radius:999px; background:var(--panel2); border:1px solid var(--line);
+  outline:none; -webkit-appearance:none; accent-color:var(--accent); cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+  background:var(--accent); border:2px solid var(--panel); cursor:pointer; box-shadow:0 0 0 1px var(--line);
+}
+input[type=range]::-moz-range-thumb{
+  width:18px; height:18px; border-radius:50%; background:var(--accent); border:2px solid var(--panel); cursor:pointer;
+}
+
+.previewhead{display:flex; justify-content:space-between; align-items:baseline; padding:0 3px;}
+.previewhead span:first-child{font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--sub);}
+.previewhint{font-size:11px; color:var(--sub); opacity:.75;}
+
+button.primary{
+  width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700;
+  background:linear-gradient(100deg,var(--accent),var(--accent2)); color:#04131a; cursor:pointer;
+  letter-spacing:.01em;
+}
+[data-theme="hc"] button.primary{background:var(--accent); color:#000;}
+button.primary:active{transform:scale(.98);}
+
+.viewfinder{
+  position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:28px; display:flex; align-items:center; justify-content:center; min-height:260px;
+}
+.corner{position:absolute; width:26px; height:26px; border:3px solid var(--accent);}
+.tl{top:12px; left:12px; border-right:none; border-bottom:none; border-radius:6px 0 0 0;}
+.tr{top:12px; right:12px; border-left:none; border-bottom:none; border-radius:0 6px 0 0;}
+.bl{bottom:12px; left:12px; border-right:none; border-top:none; border-radius:0 0 0 6px;}
+.br{bottom:12px; right:12px; border-left:none; border-top:none; border-radius:0 0 6px 0;}
+.scanline{
+  position:absolute; left:16px; right:16px; height:2px; background:var(--accent); opacity:0;
+  box-shadow:0 0 8px var(--accent);
+}
+.scanline.active{animation:sweep 1.1s ease-in-out;}
+@keyframes sweep{
+  0%{top:16px; opacity:1;} 50%{opacity:1;} 100%{top:calc(100% - 16px); opacity:0;}
+}
+@media (prefers-reduced-motion:reduce){ .scanline.active{animation:none;} }
+#qrimg{max-width:100%; height:auto; border-radius:6px; background:#fff; display:none;}
+.placeholder{color:var(--sub); font-size:13px; text-align:center; max-width:220px;}
+.status{font-size:12px; color:var(--sub); text-align:center; min-height:16px;}
+.status.err{color:var(--danger);}
+
+.actions{display:flex; gap:10px;}
+.actions button{
+  flex:1; padding:12px; border-radius:12px; border:1px solid var(--line); background:var(--panel);
+  color:var(--text); font-size:14px; font-weight:600; cursor:pointer;
+}
+.actions button:disabled{opacity:.45; cursor:not-allowed;}
+
+footer{
+  margin-top:auto; padding-top:18px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:2px; text-align:center; color:var(--sub); font-size:11.5px;
+}
+footer strong{color:var(--text); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="themebar" role="group" aria-label="Theme selector">
+    <button data-theme-btn="dark">Dark</button>
+    <button data-theme-btn="light">Light</button>
+    <button data-theme-btn="oled">OLED</button>
+    <button data-theme-btn="hc">HC</button>
+  </div>
+
+  <header>
+    <h1>QRVault</h1>
+    <p>Links, UPI payments, email, Wi-Fi, contacts &amp; more — no sign-up, no key.</p>
+  </header>
+
+  <div class="panel">
+    <div class="typetabs" id="typetabs" role="tablist" aria-label="QR content type">
+      <button data-type="text" class="active">Text / URL</button>
+      <button data-type="upi">UPI Pay</button>
+      <button data-type="email">Email</button>
+      <button data-type="phone">Phone</button>
+      <button data-type="sms">SMS</button>
+      <button data-type="wifi">Wi-Fi</button>
+      <button data-type="vcard">Contact</button>
+      <button data-type="whatsapp">WhatsApp</button>
+      <button data-type="location">Location</button>
+      <button data-type="event">Event</button>
+      <button data-type="paypal">PayPal</button>
+      <button data-type="crypto">Crypto</button>
+      <button data-type="social">Social</button>
+      <button data-type="zoom">Zoom</button>
+      <button data-type="review">Google Review</button>
+      <button data-type="tweet">Tweet</button>
+      <button data-type="fbshare">FB Share</button>
+    </div>
+
+    <div class="typefields" data-type-fields="text">
+      <div class="field">
+        <label for="data">Text or URL</label>
+        <textarea id="data" placeholder="https://example.com or any text" maxlength="900"></textarea>
+        <div class="charcount"><span id="count">0</span>/900</div>
+      </div>
+    </div>
+
+    <div class="typefields" data-type-fields="upi" hidden>
+      <div class="field"><label for="upiId">UPI ID (VPA)</label><input type="text" id="upiId" placeholder="name@bank"></div>
+      <div class="row field">
+        <div><label for="upiName">Payee name</label><input type="text" id="upiName" placeholder="Optional"></div>
+        <div><label for="upiAmount">Amount (₹)</label><input type="text" id="upiAmount" placeholder="Optional" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label for="upiNote">Note</label><input type="text" id="upiNote" placeholder="Optional payment note"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="email" hidden>
+      <div class="field"><label for="emailTo">Email address</label><input type="text" id="emailTo" placeholder="name@example.com"></div>
+      <div class="field"><label for="emailSubject">Subject</label><input type="text" id="emailSubject" placeholder="Optional"></div>
+      <div class="field"><label for="emailBody">Message</label><textarea id="emailBody" placeholder="Optional" style="min-height:56px;"></textarea></div>
+    </div>
+
+    <div class="typefields" data-type-fields="phone" hidden>
+      <div class="field"><label for="phoneNum">Phone number</label><input type="text" id="phoneNum" placeholder="+91 98765 43210" inputmode="tel"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="sms" hidden>
+      <div class="field"><label for="smsNum">Phone number</label><input type="text" id="smsNum" placeholder="+91 98765 43210" inputmode="tel"></div>
+      <div class="field"><label for="smsMsg">Message</label><textarea id="smsMsg" placeholder="Optional" style="min-height:56px;"></textarea></div>
+    </div>
+
+    <div class="typefields" data-type-fields="wifi" hidden>
+      <div class="field"><label for="wifiSsid">Network name (SSID)</label><input type="text" id="wifiSsid" placeholder="MyWiFi"></div>
+      <div class="row field">
+        <div><label for="wifiPass">Password</label><input type="text" id="wifiPass" placeholder="Leave blank if open"></div>
+        <div>
+          <label for="wifiEnc">Security</label>
+          <select id="wifiEnc">
+            <option value="WPA" selected>WPA/WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">None</option>
+          </select>
+        </div>
+      </div>
+      <label class="checkfield"><input type="checkbox" id="wifiHidden"> Hidden network</label>
+    </div>
+
+    <div class="typefields" data-type-fields="vcard" hidden>
+      <div class="row field">
+        <div><label for="vcFirst">First name</label><input type="text" id="vcFirst" placeholder="Optional"></div>
+        <div><label for="vcLast">Last name</label><input type="text" id="vcLast" placeholder="Optional"></div>
+      </div>
+      <div class="field"><label for="vcPhone">Phone</label><input type="text" id="vcPhone" placeholder="Optional" inputmode="tel"></div>
+      <div class="field"><label for="vcEmail">Email</label><input type="text" id="vcEmail" placeholder="Optional"></div>
+      <div class="row field">
+        <div><label for="vcOrg">Organization</label><input type="text" id="vcOrg" placeholder="Optional"></div>
+        <div><label for="vcUrl">Website</label><input type="text" id="vcUrl" placeholder="Optional"></div>
+      </div>
+    </div>
+
+    <div class="typefields" data-type-fields="whatsapp" hidden>
+      <div class="field"><label for="waNum">Phone number (with country code)</label><input type="text" id="waNum" placeholder="91 98765 43210" inputmode="tel"></div>
+      <div class="field"><label for="waMsg">Prefilled message</label><textarea id="waMsg" placeholder="Optional" style="min-height:56px;"></textarea></div>
+    </div>
+
+    <div class="typefields" data-type-fields="location" hidden>
+      <div class="row field">
+        <div><label for="locLat">Latitude</label><input type="text" id="locLat" placeholder="22.5726" inputmode="decimal"></div>
+        <div><label for="locLng">Longitude</label><input type="text" id="locLng" placeholder="88.3639" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label for="locAddr">Or a place name / address</label><input type="text" id="locAddr" placeholder="Used if lat/long left blank"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="event" hidden>
+      <div class="field"><label for="evTitle">Event title</label><input type="text" id="evTitle" placeholder="Team meetup"></div>
+      <div class="row field">
+        <div><label for="evStart">Starts</label><input type="datetime-local" id="evStart"></div>
+        <div><label for="evEnd">Ends</label><input type="datetime-local" id="evEnd"></div>
+      </div>
+      <div class="field"><label for="evLoc">Location</label><input type="text" id="evLoc" placeholder="Optional"></div>
+      <div class="field"><label for="evDesc">Description</label><textarea id="evDesc" placeholder="Optional" style="min-height:56px;"></textarea></div>
+    </div>
+
+    <div class="typefields" data-type-fields="paypal" hidden>
+      <div class="field"><label for="ppUser">PayPal.me username</label><input type="text" id="ppUser" placeholder="yourname"></div>
+      <div class="row field">
+        <div><label for="ppAmt">Amount</label><input type="text" id="ppAmt" placeholder="Optional" inputmode="decimal"></div>
+        <div><label for="ppCur">Currency code</label><input type="text" id="ppCur" placeholder="USD" maxlength="3"></div>
+      </div>
+    </div>
+
+    <div class="typefields" data-type-fields="crypto" hidden>
+      <div class="field">
+        <label for="cryCoin">Coin</label>
+        <select id="cryCoin">
+          <option value="bitcoin" selected>Bitcoin</option>
+          <option value="ethereum">Ethereum</option>
+          <option value="litecoin">Litecoin</option>
+          <option value="dogecoin">Dogecoin</option>
+        </select>
+      </div>
+      <div class="field"><label for="cryAddr">Wallet address</label><input type="text" id="cryAddr" placeholder="Required"></div>
+      <div class="row field">
+        <div><label for="cryAmt">Amount</label><input type="text" id="cryAmt" placeholder="Optional" inputmode="decimal"></div>
+        <div><label for="cryLabel">Label</label><input type="text" id="cryLabel" placeholder="Optional"></div>
+      </div>
+    </div>
+
+    <div class="typefields" data-type-fields="social" hidden>
+      <div class="field">
+        <label for="socPlatform">Platform</label>
+        <select id="socPlatform">
+          <option value="instagram" selected>Instagram</option>
+          <option value="twitter">X / Twitter</option>
+          <option value="facebook">Facebook</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="telegram">Telegram</option>
+          <option value="snapchat">Snapchat</option>
+        </select>
+      </div>
+      <div class="field"><label for="socUser">Username / handle</label><input type="text" id="socUser" placeholder="yourhandle"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="zoom" hidden>
+      <div class="field"><label for="zoomId">Meeting ID</label><input type="text" id="zoomId" placeholder="123 4567 8901" inputmode="numeric"></div>
+      <div class="field"><label for="zoomPwd">Passcode</label><input type="text" id="zoomPwd" placeholder="Optional"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="review" hidden>
+      <div class="field"><label for="revPlaceId">Google Place ID</label><input type="text" id="revPlaceId" placeholder="ChIJ..."></div>
+      <div class="charcount" style="text-align:left;">Find yours with Google's Place ID Finder tool.</div>
+    </div>
+
+    <div class="typefields" data-type-fields="tweet" hidden>
+      <div class="field"><label for="twText">Tweet text</label><textarea id="twText" placeholder="What's happening?" style="min-height:56px;"></textarea></div>
+      <div class="field"><label for="twUrl">Link to attach</label><input type="text" id="twUrl" placeholder="Optional"></div>
+      <div class="field"><label for="twTags">Hashtags (comma separated)</label><input type="text" id="twTags" placeholder="Optional, no # needed"></div>
+    </div>
+
+    <div class="typefields" data-type-fields="fbshare" hidden>
+      <div class="field"><label for="fbUrl">URL to share</label><input type="text" id="fbUrl" placeholder="https://example.com"></div>
+      <div class="field"><label for="fbQuote">Quote</label><input type="text" id="fbQuote" placeholder="Optional"></div>
+    </div>
+
+    <div class="row field">
+      <div>
+        <label for="size">Size</label>
+        <select id="size">
+          <option value="150">150 × 150</option>
+          <option value="250" selected>250 × 250</option>
+          <option value="350">350 × 350</option>
+          <option value="500">500 × 500</option>
+        </select>
+      </div>
+      <div>
+        <label for="ecc">Error correction</label>
+        <select id="ecc">
+          <option value="L">L — Low</option>
+          <option value="M" selected>M — Medium</option>
+          <option value="Q">Q — Quartile</option>
+          <option value="H">H — High</option>
+        </select>
+      </div>
+    </div>
+    <div class="row field">
+      <div class="colorfield">
+        <input type="color" id="fg" value="#000000">
+        <span>Foreground</span>
+      </div>
+      <div class="colorfield">
+        <input type="color" id="bg" value="#ffffff">
+        <span>Background</span>
+      </div>
+    </div>
+    <div class="field">
+      <div class="rangelabel"><label for="margin" style="margin:0;">Quiet zone margin</label><span id="marginVal">4</span></div>
+      <input type="range" id="margin" min="0" max="10" step="1" value="4">
+    </div>
+    <button class="primary" id="genBtn">Generate QR Code</button>
+  </div>
+
+  <div class="previewhead">
+    <span>Live Preview</span>
+    <span class="previewhint">Updates as you type</span>
+  </div>
+  <div class="viewfinder">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <div class="scanline" id="scanline"></div>
+    <img id="qrimg" alt="Generated QR code">
+    <div class="placeholder" id="placeholder">Your QR code will appear here inside the frame.</div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="actions">
+    <button id="downloadBtn" disabled>Download PNG</button>
+    <button id="copyBtn" disabled>Copy Image</button>
+  </div>
+
+  <footer>
+    <div>© <span id="year"></span> <strong>Manik Roy</strong>. All Rights Reserved.</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var THEME_KEY = "qrvault_theme";
+  var themes = ["dark","light","oled","hc"];
+  var root = document.documentElement;
+
+  function applyTheme(t){
+    if(themes.indexOf(t) === -1) t = "dark";
+    root.setAttribute("data-theme", t);
+    document.querySelectorAll("[data-theme-btn]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-theme-btn") === t);
+    });
+    localStorage.setItem(THEME_KEY, t);
+  }
+  document.querySelectorAll("[data-theme-btn]").forEach(function(b){
+    b.addEventListener("click", function(){ applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+  applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  var dataEl = document.getElementById("data");
+  var countEl = document.getElementById("count");
+  dataEl.addEventListener("input", function(){
+    countEl.textContent = dataEl.value.length;
+  });
+
+  var currentType = "text";
+  var tabsEl = document.getElementById("typetabs");
+  document.querySelectorAll("#typetabs button").forEach(function(b){
+    b.addEventListener("click", function(){
+      currentType = b.getAttribute("data-type");
+      document.querySelectorAll("#typetabs button").forEach(function(x){
+        x.classList.toggle("active", x === b);
+      });
+      document.querySelectorAll(".typefields").forEach(function(g){
+        g.hidden = g.getAttribute("data-type-fields") !== currentType;
+      });
+      b.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      setStatus("");
+      autoPreview();
+    });
+  });
+
+  // Let a plain vertical mouse-wheel scroll the tab bar horizontally (desktop).
+  tabsEl.addEventListener("wheel", function(e){
+    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+      e.preventDefault();
+      tabsEl.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  // Click-and-drag horizontal scrolling for mice without a horizontal wheel/trackpad.
+  var dragActive = false, dragMoved = false, dragStartX = 0, dragStartScroll = 0;
+  tabsEl.addEventListener("mousedown", function(e){
+    dragActive = true; dragMoved = false;
+    dragStartX = e.pageX; dragStartScroll = tabsEl.scrollLeft;
+    tabsEl.classList.add("dragging");
+  });
+  function endDrag(){ dragActive = false; tabsEl.classList.remove("dragging"); }
+  window.addEventListener("mouseup", endDrag);
+  tabsEl.addEventListener("mouseleave", endDrag);
+  tabsEl.addEventListener("mousemove", function(e){
+    if(!dragActive) return;
+    var dx = e.pageX - dragStartX;
+    if(Math.abs(dx) > 4) dragMoved = true;
+    tabsEl.scrollLeft = dragStartScroll - dx;
+  });
+  tabsEl.addEventListener("click", function(e){
+    if(dragMoved){ e.stopPropagation(); e.preventDefault(); dragMoved = false; }
+  }, true);
+
+  var marginEl = document.getElementById("margin");
+  var marginValEl = document.getElementById("marginVal");
+  marginEl.addEventListener("input", function(){
+    marginValEl.textContent = marginEl.value;
+  });
+
+  function debounce(fn, wait){
+    var t;
+    return function(){
+      clearTimeout(t);
+      t = setTimeout(fn, wait);
+    };
+  }
+  var autoPreview = debounce(function(){ generate(true); }, 500);
+  document.querySelector(".panel").addEventListener("input", autoPreview);
+  document.querySelector(".panel").addEventListener("change", autoPreview);
+
+  var genBtn = document.getElementById("genBtn");
+  var qrimg = document.getElementById("qrimg");
+  var placeholder = document.getElementById("placeholder");
+  var statusEl = document.getElementById("status");
+  var scanline = document.getElementById("scanline");
+  var downloadBtn = document.getElementById("downloadBtn");
+  var copyBtn = document.getElementById("copyBtn");
+  var currentUrl = "";
+  var genSeq = 0;
+
+  function resetPreview(){
+    qrimg.style.display = "none";
+    placeholder.style.display = "block";
+    downloadBtn.disabled = true;
+    copyBtn.disabled = true;
+    currentUrl = "";
+  }
+
+  function hex(v){ return v.replace("#",""); }
+  function val(id){ return document.getElementById(id).value.trim(); }
+  function esc(s){ return s.replace(/([\\;,:"])/g, "\\$1"); }
+  function digits(s){ return s.replace(/[^0-9]/g, ""); }
+  function icalDate(v){ return v ? v.replace(/[-:]/g, "") + "00" : ""; }
+
+  function buildPayload(){
+    switch(currentType){
+      case "text": {
+        var v = dataEl.value.trim();
+        if(!v) return { error: "Enter some text or a URL first." };
+        return { text: v };
+      }
+      case "upi": {
+        var id = val("upiId");
+        if(!id) return { error: "Enter a UPI ID (VPA) first." };
+        var uName = val("upiName"), uAmt = val("upiAmount"), uNote = val("upiNote");
+        var text = "upi://pay?pa=" + id;
+        if(uName) text += "&pn=" + uName;
+        if(uAmt) text += "&am=" + uAmt;
+        text += "&cu=INR";
+        if(uNote) text += "&tn=" + uNote;
+        return { text: text };
+      }
+      case "email": {
+        var to = val("emailTo");
+        if(!to) return { error: "Enter an email address first." };
+        var subj = val("emailSubject"), body = val("emailBody");
+        var q = [];
+        if(subj) q.push("subject=" + subj);
+        if(body) q.push("body=" + body);
+        return { text: "mailto:" + to + (q.length ? "?" + q.join("&") : "") };
+      }
+      case "phone": {
+        var num = val("phoneNum");
+        if(!num) return { error: "Enter a phone number first." };
+        return { text: "tel:" + num };
+      }
+      case "sms": {
+        var snum = val("smsNum");
+        if(!snum) return { error: "Enter a phone number first." };
+        var msg = val("smsMsg");
+        return { text: "sms:" + snum + (msg ? "?body=" + msg : "") };
+      }
+      case "wifi": {
+        var ssid = val("wifiSsid");
+        if(!ssid) return { error: "Enter a network name first." };
+        var enc = document.getElementById("wifiEnc").value;
+        var hiddenNet = document.getElementById("wifiHidden").checked;
+        var pw = enc === "nopass" ? "" : "P:" + esc(document.getElementById("wifiPass").value) + ";";
+        return { text: "WIFI:T:" + enc + ";S:" + esc(ssid) + ";" + pw + "H:" + (hiddenNet ? "true" : "false") + ";;" };
+      }
+      case "vcard": {
+        var first = val("vcFirst"), last = val("vcLast");
+        if(!first && !last) return { error: "Enter at least a name first." };
+        var lines = ["BEGIN:VCARD", "VERSION:3.0", "N:" + last + ";" + first, "FN:" + (first + " " + last).trim()];
+        if(val("vcOrg")) lines.push("ORG:" + val("vcOrg"));
+        if(val("vcPhone")) lines.push("TEL:" + val("vcPhone"));
+        if(val("vcEmail")) lines.push("EMAIL:" + val("vcEmail"));
+        if(val("vcUrl")) lines.push("URL:" + val("vcUrl"));
+        lines.push("END:VCARD");
+        return { text: lines.join("\n") };
+      }
+      case "whatsapp": {
+        var wnum = digits(val("waNum"));
+        if(!wnum) return { error: "Enter a phone number first." };
+        var wmsg = val("waMsg");
+        return { text: "https://wa.me/" + wnum + (wmsg ? "?text=" + wmsg : "") };
+      }
+      case "location": {
+        var lat = val("locLat"), lng = val("locLng"), addr = val("locAddr");
+        if(!lat && !lng && !addr) return { error: "Enter coordinates or a place name first." };
+        var q = (lat && lng) ? (lat + "," + lng) : addr;
+        return { text: "https://www.google.com/maps/search/?api=1&query=" + q };
+      }
+      case "event": {
+        var title = val("evTitle"), start = val("evStart");
+        if(!title || !start) return { error: "Enter a title and start time first." };
+        var el = ["BEGIN:VEVENT", "SUMMARY:" + title, "DTSTART:" + icalDate(start)];
+        if(val("evEnd")) el.push("DTEND:" + icalDate(val("evEnd")));
+        if(val("evLoc")) el.push("LOCATION:" + val("evLoc"));
+        if(val("evDesc")) el.push("DESCRIPTION:" + val("evDesc"));
+        el.push("END:VEVENT");
+        return { text: el.join("\n") };
+      }
+      case "paypal": {
+        var ppu = val("ppUser");
+        if(!ppu) return { error: "Enter a PayPal.me username first." };
+        var ppa = val("ppAmt"), ppc = val("ppCur");
+        return { text: "https://paypal.me/" + ppu + (ppa ? "/" + ppa + ppc : "") };
+      }
+      case "crypto": {
+        var addr = val("cryAddr");
+        if(!addr) return { error: "Enter a wallet address first." };
+        var coin = document.getElementById("cryCoin").value;
+        var cp = [];
+        if(val("cryAmt")) cp.push("amount=" + val("cryAmt"));
+        if(val("cryLabel")) cp.push("label=" + val("cryLabel"));
+        return { text: coin + ":" + addr + (cp.length ? "?" + cp.join("&") : "") };
+      }
+      case "social": {
+        var su = val("socUser").replace(/^@/, "");
+        if(!su) return { error: "Enter a username or handle first." };
+        var bases = {
+          instagram: "https://instagram.com/", twitter: "https://twitter.com/",
+          facebook: "https://facebook.com/", linkedin: "https://linkedin.com/in/",
+          youtube: "https://youtube.com/@", tiktok: "https://tiktok.com/@",
+          telegram: "https://t.me/", snapchat: "https://snapchat.com/add/"
+        };
+        return { text: bases[document.getElementById("socPlatform").value] + su };
+      }
+      case "zoom": {
+        var zid = digits(val("zoomId"));
+        if(!zid) return { error: "Enter a meeting ID first." };
+        var zp = val("zoomPwd");
+        return { text: "https://zoom.us/j/" + zid + (zp ? "?pwd=" + zp : "") };
+      }
+      case "review": {
+        var pid = val("revPlaceId");
+        if(!pid) return { error: "Enter a Google Place ID first." };
+        return { text: "https://search.google.com/local/writereview?placeid=" + pid };
+      }
+      case "tweet": {
+        var ttext = val("twText");
+        if(!ttext) return { error: "Enter some tweet text first." };
+        var tp = ["text=" + ttext];
+        if(val("twUrl")) tp.push("url=" + val("twUrl"));
+        if(val("twTags")) tp.push("hashtags=" + val("twTags").replace(/#/g, ""));
+        return { text: "https://twitter.com/intent/tweet?" + tp.join("&") };
+      }
+      case "fbshare": {
+        var fu = val("fbUrl");
+        if(!fu) return { error: "Enter a URL to share first." };
+        var fq = val("fbQuote");
+        return { text: "https://www.facebook.com/sharer/sharer.php?u=" + fu + (fq ? "&quote=" + fq : "") };
+      }
+    }
+  }
+
+  function setStatus(msg, isErr){
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  }
+
+  function buildUrls(payload){
+    var size = document.getElementById("size").value;
+    var ecc = document.getElementById("ecc").value;
+    var margin = document.getElementById("margin").value;
+    var fg = hex(document.getElementById("fg").value);
+    var bg = hex(document.getElementById("bg").value);
+    var qrserver = "https://api.qrserver.com/v1/create-qr-code/?" + new URLSearchParams({
+      data: payload.text, size: size + "x" + size, ecc: ecc, margin: margin, color: fg, bgcolor: bg
+    }).toString();
+    var quickchart = "https://quickchart.io/qr?" + new URLSearchParams({
+      text: payload.text, size: size, margin: margin, ecLevel: ecc, dark: fg, light: bg
+    }).toString();
+    return [qrserver, quickchart];
+  }
+
+  function tryLoad(urls, i, myId){
+    if(myId !== genSeq) return;
+    if(i >= urls.length){
+      setStatus("Couldn't reach either QR service. Check your connection and try again.", true);
+      genBtn.disabled = false;
+      return;
+    }
+    var url = urls[i];
+    var settled = false;
+    var probe = new Image();
+    var timer = setTimeout(function(){
+      if(!settled){ settled = true; tryLoad(urls, i + 1, myId); }
+    }, 6000);
+    probe.onload = function(){
+      if(settled || myId !== genSeq) return;
+      settled = true; clearTimeout(timer);
+      qrimg.src = url;
+      qrimg.style.display = "block";
+      placeholder.style.display = "none";
+      currentUrl = url;
+      downloadBtn.disabled = false;
+      copyBtn.disabled = false;
+      setStatus(i === 0 ? "QR code ready." : "QR code ready (backup service used).");
+      genBtn.disabled = false;
+    };
+    probe.onerror = function(){
+      if(settled) return;
+      settled = true; clearTimeout(timer);
+      tryLoad(urls, i + 1, myId);
+    };
+    probe.src = url;
+  }
+
+  function generate(silent){
+    var payload = buildPayload();
+    if(payload.error){
+      if(silent){ setStatus(""); resetPreview(); }
+      else setStatus(payload.error, true);
+      return;
+    }
+    genSeq++;
+    setStatus("Generating…");
+    genBtn.disabled = true;
+    scanline.classList.remove("active"); void scanline.offsetWidth; scanline.classList.add("active");
+    tryLoad(buildUrls(payload), 0, genSeq);
+  }
+  genBtn.addEventListener("click", function(){ generate(false); });
+
+  downloadBtn.addEventListener("click", function(){
+    if(!currentUrl) return;
+    fetch(currentUrl).then(function(r){
+      if(!r.ok) throw new Error("fetch failed");
+      return r.blob();
+    }).then(function(blob){
+      var a = document.createElement("a");
+      var obj = URL.createObjectURL(blob);
+      a.href = obj;
+      a.download = "qrvault-" + Date.now() + ".png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(obj); }, 4000);
+    }).catch(function(){
+      window.open(currentUrl, "_blank");
+      setStatus("Opened image in a new tab — save it from there.", false);
+    });
+  });
+
+  copyBtn.addEventListener("click", function(){
+    if(!currentUrl || !navigator.clipboard || !window.ClipboardItem){
+      setStatus("Copy isn't supported here — try Download instead.", true);
+      return;
+    }
+    fetch(currentUrl).then(function(r){ return r.blob(); }).then(function(blob){
+      return navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    }).then(function(){
+      setStatus("QR image copied to clipboard.");
+    }).catch(function(){
+      setStatus("Couldn't copy — try Download instead.", true);
+    });
+  });
+
+  dataEl.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && (e.ctrlKey || e.metaKey)) generate(false);
+  });
+
+  if("serviceWorker" in navigator){
+    var host = location.hostname;
+    var skip = host.indexOf("claudeusercontent.com") !== -1 || host === "localhost" || host === "";
+    if(!skip){
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register("sw.js").catch(function(){});
+      });
+    }
+  }
+})();
+</script>
+</body>
+</html>
