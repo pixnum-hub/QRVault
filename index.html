@@ -6,17 +6,10 @@
 <title>QRVault — QR Code Generator</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0f14">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="QRVault">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Generate QR codes for links, UPI payments, email, Wi-Fi, contacts, events and more — no sign-up, no key.">
 <style>
 :root{
   --bg:#0b0f14; --panel:#121821; --panel2:#0e141c; --line:#22303f;
@@ -756,7 +749,7 @@ footer strong{color:var(--text); font-weight:700;}
 
   if("serviceWorker" in navigator){
     var host = location.hostname;
-    var skip = host.indexOf("claudeusercontent.com") !== -1 || host === "localhost" || host === "";
+    var skip = host.indexOf("claudeusercontent.com") !== -1;
     if(!skip){
       window.addEventListener("load", function(){
         navigator.serviceWorker.register("sw.js").catch(function(){});
